@@ -22,9 +22,9 @@ export PATH=$JAVA_HOME/bin:$PATH
 
 export GOROOT="/opt/go"
 export GOPATH="$HOME/go"
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+export GOBIN=$GOPATH/bin
+export PATH=$GOROOT/bin:$GOPATH:$GOPATH/bin:$PATH
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 POWERLEVEL9K_MODE="hack 10"
-
