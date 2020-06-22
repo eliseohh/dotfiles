@@ -11,8 +11,9 @@ Plug 'junegunn/fzf.vim'
 Plug 'SirVer/ultisnips' | Plug 'honza/vim-snippets'
 Plug 'airblade/vim-gitgutter'
 Plug 'rdnetto/YCM-Generator', { 'branch': 'stable' }
-Plug 'fatih/vim-go', { 'tag': '*' }
+Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
 
 call plug#end()
 
@@ -21,6 +22,7 @@ map <leader>q gqip
 nnoremap <C-p> :Files<CR>
 
 colorscheme dracula
+filetype plugin on
 
 " Custom includes
 let s:eliseo_include_path = fnamemodify(resolve(expand('<sfile>:p')), ':h').'/.vim'
