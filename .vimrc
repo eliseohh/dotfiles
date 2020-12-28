@@ -14,15 +14,12 @@ Plug 'rdnetto/YCM-Generator', { 'branch': 'stable' }
 Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'nsf/gocode', { 'rtp': 'vim', 'do': '~/.vim/plugged/gocode/vim/symlink.sh' }
-Plug 'takac/vim-hardtime'
 
 call plug#end()
 
 map <leader>q gqip
 
 nnoremap <C-p> :Files<CR>
-
-let g:hardtime_default_on = 1
 
 colorscheme dracula
 filetype plugin on
