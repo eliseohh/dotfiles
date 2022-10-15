@@ -5,7 +5,7 @@ filetype off
 syntax on
 filetype plugin indent on
 
-set number relativenumber
+set number 
 set visualbell
 set encoding=utf-8
 set formatoptions=tcqrn
