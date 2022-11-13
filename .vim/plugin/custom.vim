@@ -32,3 +32,5 @@ set incsearch
 set ignorecase
 set smartcase
 set showmatch
+set omnifunc=syntaxcomplete#Complete
+
