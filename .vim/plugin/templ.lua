@@ -4,6 +4,52 @@
 --        Neovim 0.11+ + Mason + Snippets    --
 -- ========================================== --
 
+vim.g.mapleader = "\\"
+
+-- ================================ --
+-- Opciones básicas
+-- ================================ --
+vim.o.number = true
+vim.o.visualbell = true
+vim.o.encoding = "utf-8"
+vim.o.formatoptions = "tcqrn"
+vim.o.expandtab = true
+vim.o.shiftwidth = 2
+vim.o.tabstop = 2
+vim.o.backspace = "indent,eol,start"
+vim.o.hidden = true
+vim.o.ttyfast = true
+vim.o.laststatus = 2
+vim.o.showmode = true
+vim.o.showcmd = true
+vim.o.hlsearch = true
+vim.o.incsearch = true
+vim.o.ignorecase = true
+vim.o.smartcase = true
+vim.o.showmatch = true
+vim.o.matchpairs = vim.o.matchpairs .. ",<:>"
+vim.o.list = true
+vim.o.listchars = "eol:¬,tab:>·,trail:~,extends:>,precedes:<,space:␣"
+
+-- ================================ --
+-- Keymaps generales
+-- ================================ --
+vim.keymap.set("n", "j", "gj")
+vim.keymap.set("n", "k", "gk")
+
+-- FZF
+vim.keymap.set("n", "<leader>f", ":FZF<CR>")
+vim.keymap.set("n", "<leader>b", ":Buffers<CR>")
+vim.keymap.set("n", "<leader>a", ":Ag<CR>")
+vim.keymap.set("n", "<leader>l", ":Lines<CR>")
+vim.keymap.set("n", "<leader>co", ":Commands<CR>")
+
+-- NERDTree
+vim.keymap.set("n", "<leader>n", ":NERDTreeFocus<CR>")
+vim.keymap.set("n", "<C-n>", ":NERDTree<CR>")
+vim.keymap.set("n", "<C-t>", ":NERDTreeToggle<CR>")
+vim.keymap.set("n", "<C-f>", ":NERDTreeFind<CR>")
+
 -- ================================ --
 -- Función para verificar binarios
 -- ================================ --
@@ -12,15 +58,24 @@ local function is_executable(cmd)
 end
 
 -- ================================ --
+-- Capacidades LSP (para nvim-cmp)
+-- ================================ --
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+local ok_cmp, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+if ok_cmp then
+    capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+end
+
+-- ================================ --
 -- Formateo custom para *.templ
 -- ================================ --
 local custom_format = function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local filename = vim.api.nvim_buf_get_name(bufnr)
+
     if vim.bo.filetype == "templ" then
-        local bufnr = vim.api.nvim_get_current_buf()
-        local filename = vim.api.nvim_buf_get_name(bufnr)
-        local cmd = "templ fmt " .. vim.fn.shellescape(filename)
         if is_executable("templ") then
-            vim.fn.jobstart(cmd, {
+            vim.fn.jobstart("templ fmt " .. vim.fn.shellescape(filename), {
                 on_exit = function()
                     if vim.api.nvim_get_current_buf() == bufnr then
                         vim.cmd('e!')
@@ -31,7 +86,9 @@ local custom_format = function()
             vim.notify("No se encontró 'templ' para formatear", vim.log.levels.WARN)
         end
     else
-        vim.lsp.buf.format()
+        if vim.lsp.buf.format then
+            vim.lsp.buf.format()
+        end
     end
 end
 
@@ -40,8 +97,22 @@ end
 -- ================================ --
 local on_attach = function(client, bufnr)
     local opts = { buffer = bufnr, remap = false }
-    -- Keymap para formateo manual
+
+    -- Formateo
     vim.keymap.set("n", "<leader>lf", custom_format, opts)
+
+    -- Navegación LSP
+    vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+    vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+    vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+
+    -- Autoformateo al guardar
+    vim.api.nvim_create_autocmd("BufWritePre", {
+        buffer = bufnr,
+        callback = function()
+            custom_format()
+        end,
+    })
 end
 
 -- ================================ --
@@ -50,10 +121,12 @@ end
 require("mason").setup()
 require("mason-lspconfig").setup({
     ensure_installed = {
-        "gopls",
-        "ts_ls",
         "html",
+        "ts_ls",
+        "gopls",
         "tailwindcss",
+        "cssls",
+        "emmet_ls",
     },
     automatic_installation = true,
 })
@@ -63,58 +136,64 @@ require("mason-lspconfig").setup({
 -- ================================ --
 local common_config = {
     on_attach = on_attach,
-    capabilities = capabilities, -- definido por nvim-cmp u otro plugin
+    capabilities = capabilities,
 }
 
 -- ================================ --
--- TailwindCSS configuración
+-- TailwindCSS
 -- ================================ --
-local tailwind_config = vim.tbl_extend("force", common_config, {
-    filetypes = { "templ", "astro", "javascript", "typescript", "react" },
+vim.lsp.config("tailwindcss", vim.tbl_extend("force", common_config, {
+    filetypes = { "templ", "html", "javascript", "typescript", "react", "astro" },
     settings = {
         tailwindCSS = {
-            includeLanguages = {
-                templ = "html",
-            },
+            includeLanguages = { templ = "html" },
         },
     },
-})
-vim.lsp.config("tailwindcss", tailwind_config)
+}))
 
 -- ================================ --
--- HTML configuración con templ y htmx
+-- HTML (soporte templ + HTMX)
 -- ================================ --
 vim.lsp.config("html", vim.tbl_extend("force", common_config, {
     filetypes = { "html", "templ", "htmx" },
 }))
 
 -- ================================ --
--- Servidores Mason-LSPConfig
+-- Emmet LSP para autocompletar HTML/CSS dentro de templ
 -- ================================ --
-local mason_servers = {
-    "gopls",
-    "tsserver",
-    "html",
-    "tailwindcss",
-}
-for _, server in ipairs(mason_servers) do
-    if server == "html" then
-        vim.lsp.config(server, vim.tbl_extend("force", common_config, {
-            filetypes = { "html", "templ", "htmx" }
-        }))
-    else
-        vim.lsp.config(server, common_config)
-    end
-end
+vim.lsp.config("emmet_ls", vim.tbl_extend("force", common_config, {
+    filetypes = { "html", "templ", "htmx" },
+    init_options = {
+        html = { options = { ["bem.enabled"] = true } },
+    },
+}))
 
 -- ================================ --
--- Servidores manuales
+-- CSS LSP
 -- ================================ --
-local manual_servers = {
-    { name = "ccls", cmd = "ccls" }, 
+vim.lsp.config("cssls", vim.tbl_extend("force", common_config, {
+    filetypes = { "css", "scss", "templ" },
+}))
+
+-- ================================ --
+-- TypeScript / JavaScript
+-- ================================ --
+vim.lsp.config("ts_ls", common_config)
+
+-- ================================ --
+-- Go
+-- ================================ --
+vim.lsp.config("gopls", common_config)
+
+-- ================================ --
+-- Servidores opcionales: ccls y cmake
+-- ================================ --
+local optional_servers = {
+    { name = "ccls", cmd = "ccls" },
     { name = "cmake", cmd = "cmake-language-server" },
 }
-for _, server in ipairs(manual_servers) do
+
+for _, server in ipairs(optional_servers) do
     if is_executable(server.cmd) then
         vim.lsp.config(server.name, common_config)
     else
@@ -123,50 +202,29 @@ for _, server in ipairs(manual_servers) do
 end
 
 -- ================================ --
--- Habilitar todos los servidores
+-- Snippets Templ
 -- ================================ --
-local all_servers = vim.tbl_map(function(s) return s.name or s end, vim.list_extend(mason_servers, manual_servers))
-vim.lsp.enable(all_servers)
+local ok_luasnip, luasnip = pcall(require, "luasnip")
+if ok_luasnip then
+    require("luasnip.loaders.from_vscode").lazy_load({
+        paths = { "./snippets" },
+    })
+
+    luasnip.add_snippets("templ", {
+        luasnip.snippet("if", {
+            luasnip.text_node("{% if "),
+            luasnip.insert_node(1, "condition"),
+            luasnip.text_node(" %}"),
+            luasnip.insert_node(2, ""),
+            luasnip.text_node("{% endif %}"),
+        }),
+    })
+else
+    vim.notify("LuaSnip no está instalado. Los snippets no estarán disponibles", vim.log.levels.WARN)
+end
 
 -- ================================ --
--- Autocmd para formateo *.templ antes de guardar
+-- Mensaje de confirmación
 -- ================================ --
-vim.api.nvim_create_autocmd({ "BufWritePre" }, {
-    pattern = { "*.templ" },
-    callback = custom_format
-})
-
--- ================================ --
--- Snippets para Templ y HTMX
--- ================================ --
--- Usando LuaSnip: coloca tus snippets en ./snippets/templ y ./snippets/htmx
-local luasnip = require("luasnip")
-require("luasnip.loaders.from_vscode").lazy_load({
-    paths = { "./snippets" },
-})
-
--- Ejemplos de snippets inline
-luasnip.add_snippets("templ", {
-    luasnip.snippet("if", {
-        luasnip.text_node("{% if "),
-        luasnip.insert_node(1, "condition"),
-        luasnip.text_node(" %}"),
-        luasnip.insert_node(2, ""),
-        luasnip.text_node("{% endif %}"),
-    }),
-})
-luasnip.add_snippets("htmx", {
-    luasnip.snippet("hx-get", {
-        luasnip.text_node('hx-get="'),
-        luasnip.insert_node(1, "/url"),
-        luasnip.text_node('" hx-target="'),
-        luasnip.insert_node(2, "#target"),
-        luasnip.text_node('"'),
-    }),
-})
-
--- ================================ --
--- Mensaje final de confirmación
--- ================================ --
-vim.notify("Neovim listo para Templ, HTMX y TailwindCSS!", vim.log.levels.INFO)
+vim.notify("Neovim listo para Templ con HTML, CSS, HTMX, TailwindCSS y Emmet!", vim.log.levels.INFO)
 
