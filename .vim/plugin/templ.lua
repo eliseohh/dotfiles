@@ -75,27 +75,115 @@ end
 -- ================================ --
 -- Formateo custom
 -- ================================ --
-local custom_format = function()
+-- Guarda el job activo por buffer para evitar spam
+local templ_fmt_job = {}
+
+local function custom_format()
   local bufnr = vim.api.nvim_get_current_buf()
   local filename = vim.api.nvim_buf_get_name(bufnr)
 
-  if vim.bo.filetype == "templ" then
-    if is_executable("templ") then
-      vim.fn.jobstart("templ fmt " .. vim.fn.shellescape(filename), {
-        on_exit = function()
-          if vim.api.nvim_get_current_buf() == bufnr then
-            vim.cmd("e!")
-          end
-        end,
-      })
-    else
-      show_error("No se encontró 'templ' para formatear")
-    end
-  else
-    if vim.lsp.buf.format then
-      vim.lsp.buf.format()
-    end
+  if filename == "" then return end
+
+  if vim.bo[bufnr].filetype ~= "templ" then
+    if vim.lsp.buf.format then vim.lsp.buf.format({ bufnr = bufnr }) end
+    return
   end
+
+  if not is_executable("templ") then
+    show_error("No se encontró 'templ' para formatear")
+    return
+  end
+
+  if not vim.loop.fs_stat(filename) then
+    vim.notify("Archivo no existe en disco: " .. filename, vim.log.levels.ERROR, { title = "templ fmt" })
+    return
+  end
+
+  vim.fn.jobstart({ "templ", "fmt", filename }, {
+    stdout_buffered = true,
+    stderr_buffered = true,
+    on_stderr = function(_, data)
+      if data and #data > 0 then
+        local msg = table.concat(data, "\n"):gsub("\n+$", "")
+        if msg ~= "" then
+          vim.schedule(function()
+            vim.notify(msg, vim.log.levels.ERROR, { title = "templ fmt" })
+          end)
+        end
+      end
+    end,
+    on_exit = function(_, code)
+      vim.schedule(function()
+        if code ~= 0 then
+          vim.notify("templ fmt falló (exit " .. tostring(code) .. ")", vim.log.levels.ERROR, { title = "templ fmt" })
+          return
+        end
+        if vim.api.nvim_buf_is_valid(bufnr)
+            and vim.api.nvim_get_current_buf() == bufnr
+            and not vim.bo[bufnr].modified
+        then
+          vim.cmd("checktime")
+        end
+      end)
+    end,
+  })
+end
+
+-- ================================ --
+-- Formateo al guardar templ
+-- ================================ --
+
+local templ_fmt_running = {}
+local templ_fmt_timer = {}
+
+local function custom_format_templ(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  local filename = vim.api.nvim_buf_get_name(bufnr)
+  if filename == "" then return end
+  if vim.bo[bufnr].filetype ~= "templ" then return end
+  if not is_executable("templ") then
+    vim.notify("No se encontró 'templ' para formatear", vim.log.levels.ERROR, { title = "templ fmt" })
+    return
+  end
+  if not vim.loop.fs_stat(filename) then
+    vim.notify("Archivo no existe en disco: " .. filename, vim.log.levels.ERROR, { title = "templ fmt" })
+    return
+  end
+
+  if templ_fmt_running[bufnr] then return end
+  templ_fmt_running[bufnr] = true
+
+  vim.fn.jobstart({ "templ", "fmt", filename }, {
+    stdout_buffered = true,
+    stderr_buffered = true,
+    on_stderr = function(_, data)
+      if data and #data > 0 then
+        local msg = table.concat(data, "\n"):gsub("\n+$", "")
+        if msg ~= "" then
+          vim.schedule(function()
+            vim.notify(msg, vim.log.levels.ERROR, { title = "templ fmt" })
+          end)
+        end
+      end
+    end,
+    on_exit = function(_, code)
+      templ_fmt_running[bufnr] = nil
+      vim.schedule(function()
+        if code ~= 0 then
+          vim.notify("templ fmt falló (exit " .. tostring(code) .. ")", vim.log.levels.ERROR, { title = "templ fmt" })
+          return
+        end
+        -- Si sigues en ese buffer y NO hay cambios locales, recarga desde disco
+        if vim.api.nvim_buf_is_valid(bufnr)
+            and vim.api.nvim_get_current_buf() == bufnr
+            and not vim.bo[bufnr].modified
+        then
+          vim.cmd("silent! checktime")
+          vim.cmd("silent! edit")
+        end
+      end)
+    end,
+  })
 end
 
 -- ================================ --
@@ -120,10 +208,26 @@ local on_attach = function(client, bufnr)
   vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
 
   -- Autoformateo al guardar
-  vim.api.nvim_create_autocmd("BufWritePre", {
-    buffer = bufnr,
-    callback = function()
-      custom_format()
+  -- ✅ Autoformateo al guardar (POST, con debounce)
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    pattern = "*.templ",
+    callback = function(args)
+      local bufnr = args.buf
+      -- debounce 150ms para evitar doble disparo
+      if templ_fmt_timer[bufnr] then
+        templ_fmt_timer[bufnr]:stop()
+        templ_fmt_timer[bufnr]:close()
+      end
+      local t = vim.loop.new_timer()
+      templ_fmt_timer[bufnr] = t
+      t:start(150, 0, function()
+        t:stop()
+        t:close()
+        templ_fmt_timer[bufnr] = nil
+        vim.schedule(function()
+          custom_format_templ(bufnr)
+        end)
+      end)
     end,
   })
 end
