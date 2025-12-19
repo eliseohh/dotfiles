@@ -186,6 +186,49 @@ local function custom_format_templ(bufnr)
   })
 end
 
+
+-- ================================ --
+-- Comando: TemplGenerate + LspRestart
+-- ================================ --
+vim.api.nvim_create_user_command("TemplGenerate", function()
+  vim.fn.jobstart({ "templ", "generate" }, {
+    stdout_buffered = true,
+    stderr_buffered = true,
+
+    on_stderr = function(_, data)
+      if data and #data > 0 then
+        local msg = table.concat(data, "\n"):gsub("\n+$", "")
+        if msg ~= "" then
+          vim.schedule(function()
+            vim.notify(msg, vim.log.levels.ERROR, { title = "templ generate" })
+          end)
+        end
+      end
+    end,
+
+    on_exit = function(_, code)
+      vim.schedule(function()
+        if code ~= 0 then
+          vim.notify(
+            "templ generate falló (exit " .. tostring(code) .. ")",
+            vim.log.levels.ERROR,
+            { title = "templ generate" }
+          )
+          return
+        end
+
+        vim.notify("templ generate OK", vim.log.levels.INFO, { title = "templ generate" })
+
+        -- 🔁 Restart TODOS los LSP
+        vim.cmd("LspRestart")
+      end)
+    end,
+  })
+end, {})
+
+vim.keymap.set("n", "<leader>tg", ":TemplGenerate<CR>", { desc = "templ generate" })
+
+
 -- ================================ --
 -- Función on_attach para LSP
 -- ================================ --
