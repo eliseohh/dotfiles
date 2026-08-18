@@ -29,7 +29,6 @@ TailwindCSS) development.
   ├─ go_formatter.lua      Format Go on save (gofmt / vim-go)
   ├─ lua_formatter.lua     lua_ls LSP + format on save
   └─ error_formatter.lua   Diagnostic styling + format-on-save helpers
-.vim-tmp                   LEGACY coc.nvim vimrc (kept as backup — see Notes)
 ```
 
 ## Requirements
@@ -94,8 +93,5 @@ Then open Neovim and run `:PlugInstall`.
 
 ## Notes
 
-- **`.vim-tmp`** is an older coc.nvim-based `.vimrc` kept as a backup. The active
-  config is `.vimrc` (native LSP + nvim-cmp). Safe to delete once you're sure you
-  don't need the old setup.
 - `.i3gapscfg` hardcodes a wallpaper path (`/home/eliseo/Images/…`) — adjust it
   for your machine.
