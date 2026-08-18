@@ -1,0 +1,17 @@
+# key: libro
+# name: libro
+# --
+* TODO ${1:Título}
+:PROPERTIES:
+:ID: `(org-id-new)`
+:AUTHOR: ${2:AUTHOR}
+:TOTAL_PAGES: ${3:X}
+:ACTUAL_PAGES: 0
+:RATE: ${4:-}/5
+:START_DATE: `(format-time-string "%Y-%m-%d")`
+:END:
+
+** ¿Qué me está pareciendo hasta el momento?
+$0
+
+** Mi review Final

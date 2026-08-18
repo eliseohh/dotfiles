@@ -1,0 +1,23 @@
+# -*- mode: snippet -*-
+# name: glibros
+# key: glibros
+# --
+* ${1:Nombre de la saga} :${2:fantasía}:
+:PROPERTIES:
+:ID:       `(org-id-new)`
+:AUTHOR:   ${3:Autor}
+:SERIE:    $1
+:END:
+** TODO ${4:Primer libro}
+:PROPERTIES:
+:ID:       `(org-id-new)`
+:AUTHOR:   $3
+:TOTAL_PAGES: ${5:800}
+:ACTUAL_PAGES: 0
+:RATE:     ${6:-}/5
+:START_DATE: `(format-time-string "%Y-%m-%d")`
+:END:
+*** ¿Qué me está pareciendo hasta el momento?
+$0
+
+*** Mi review Final

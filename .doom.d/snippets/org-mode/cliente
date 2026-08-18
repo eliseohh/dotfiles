@@ -1,0 +1,24 @@
+# -*- mode: snippet -*-
+# name: cliente
+# key: cliente
+# --
+* ${1:Nombre del cliente} :${2:activo}:
+:PROPERTIES:
+:ID:       `(org-id-new)`
+:COMPANY:  ${3:Empresa}
+:EMAIL:    ${4:correo@ejemplo.com}
+:PHONE:    ${5:+34 600 000 000}
+:SINCE:    `(format-time-string "%Y-%m-%d")`
+:END:
+** TODO ${6:Primer proyecto}
+DEADLINE: <${7:2026-09-01}>
+:PROPERTIES:
+:ID:       `(org-id-new)`
+:CLIENT:   $1
+:BUDGET:   ${8:1000}
+:START_DATE: `(format-time-string "%Y-%m-%d")`
+:END:
+*** Objetivo
+$0
+
+*** Notas
