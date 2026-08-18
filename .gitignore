@@ -1,0 +1,14 @@
+# Vim / Neovim transient
+*.swp
+*.swo
+*.un~
+.netrwhist
+.vim/plugged/
+.vim/plugin/**/*.vim.tmp
+
+# Zsh
+.zsh_history
+.zcompdump*
+
+# OS
+.DS_Store

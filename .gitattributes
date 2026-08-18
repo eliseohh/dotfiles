@@ -1,0 +1,2 @@
+# Keep LF line endings in the repo regardless of the OS checking out
+* text=auto eol=lf
