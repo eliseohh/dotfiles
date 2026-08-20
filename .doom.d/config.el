@@ -140,3 +140,36 @@ notes show up automatically."
         (append (ensure-list org-roam-file-exclude-regexp)
                 '("\\(?:\\`\\|/\\)[.#~][^/]*\\'"  ; name starts with . # or ~
                   "~\\'"))))                       ; …or ends with ~ (backups)
+
+;; ── Toolchain PATH for LSP servers and formatters ────────────────────────
+;; Emacs' PATH at runtime does not reliably match the environment it was
+;; started with: the systemd unit (see ~/.config/environment.d/10-dev-path.conf)
+;; sets the right PATH — `initial-environment' proves it arrives — but by the
+;; time eglot looks for a server, `exec-path' has been replaced by a
+;; shell-derived value that omits the Go and ghcup directories. Rather than
+;; depend on that, pin the directories we need explicitly. Without this, eglot
+;; silently fails to start gopls/HLS and apheleia can't find gofmt.
+;;
+;; Keep in sync with ~/.config/environment.d/10-dev-path.conf and config.fish.
+(defun +my/nvm-bin-dirs ()
+  "Return bin/ dirs of every Node version under nvm.fish's data dir, newest first.
+Globbed rather than hardcoded: pinning one version means `nvm install' silently
+strips tsserver, elm-language-server and prettier from Emacs' PATH."
+  (nreverse
+   (sort (file-expand-wildcards "~/.local/share/nvm/v*/bin") #'string<)))
+
+(defvar +my/extra-bin-dirs
+  (append '("/usr/local/go/bin"                    ; go, gofmt
+            "~/go/bin"                             ; gopls, gotests, gomodifytags, gore
+            "~/.ghcup/bin"                         ; ghc, cabal, haskell-language-server
+            "~/.cabal/bin")
+          (+my/nvm-bin-dirs)                       ; tsserver, elm-language-server, prettier
+          '("~/.local/bin"))
+  "Directories holding language servers and formatters.
+Prepended to `exec-path' and $PATH so subprocesses inherit them too.")
+
+(let ((dirs (seq-filter #'file-directory-p
+                        (mapcar #'expand-file-name +my/extra-bin-dirs))))
+  (dolist (dir (reverse dirs))
+    (cl-pushnew dir exec-path :test #'string=))
+  (setenv "PATH" (string-join (append dirs (list (getenv "PATH"))) path-separator)))
