@@ -3,7 +3,7 @@
 # key: proyecto
 # --
 ** TODO ${1:Nombre del proyecto}
-DEADLINE: <${2:2026-09-01}>
+DEADLINE: <${2:`(format-time-string "%Y-%m-%d" (time-add (current-time) (days-to-time 30)))`}>
 :PROPERTIES:
 :ID:       `(org-id-new)`
 :CLIENT:   ${3:Cliente}

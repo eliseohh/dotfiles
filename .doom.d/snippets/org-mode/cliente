@@ -7,11 +7,11 @@
 :ID:       `(org-id-new)`
 :COMPANY:  ${3:Empresa}
 :EMAIL:    ${4:correo@ejemplo.com}
-:PHONE:    ${5:+34 600 000 000}
+:PHONE:    ${5:+56 9 0000 0000}
 :SINCE:    `(format-time-string "%Y-%m-%d")`
 :END:
 ** TODO ${6:Primer proyecto}
-DEADLINE: <${7:2026-09-01}>
+DEADLINE: <${7:`(format-time-string "%Y-%m-%d" (time-add (current-time) (days-to-time 30)))`}>
 :PROPERTIES:
 :ID:       `(org-id-new)`
 :CLIENT:   $1
