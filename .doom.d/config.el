@@ -173,3 +173,10 @@ Prepended to `exec-path' and $PATH so subprocesses inherit them too.")
   (dolist (dir (reverse dirs))
     (cl-pushnew dir exec-path :test #'string=))
   (setenv "PATH" (string-join (append dirs (list (getenv "PATH"))) path-separator)))
+
+;; apheleia defaults Haskell to fourmolu; we installed ormolu (cabal install
+;; ormolu). Without this, `(format +onsave)' calls a binary that isn't there
+;; and saving a .hs file silently does nothing.
+(after! apheleia
+  (dolist (mode '(haskell-mode haskell-ts-mode literate-haskell-mode))
+    (setf (alist-get mode apheleia-mode-alist) 'ormolu)))
