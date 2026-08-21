@@ -180,3 +180,20 @@ Prepended to `exec-path' and $PATH so subprocesses inherit them too.")
 (after! apheleia
   (dolist (mode '(haskell-mode haskell-ts-mode literate-haskell-mode))
     (setf (alist-get mode apheleia-mode-alist) 'ormolu)))
+
+;; ── agent-shell: drive opencode from inside Emacs ────────────────────────
+;; opencode speaks ACP (`opencode acp'), and agent-shell is the Emacs ACP
+;; client. This is unrelated to Doom's :tools llm module (gptel), which talks
+;; to LLM APIs directly and cannot drive an agent CLI.
+;;
+;; The defaults already fit this machine: `agent-shell-opencode-acp-command' is
+;; ("opencode" "acp"), and opencode lives in the nvm bin dir that config.el
+;; already puts on `exec-path'. `agent-shell-opencode-default-model-id' is left
+;; nil on purpose so the model comes from ~/.config/opencode/opencode.json
+;; (currently opencode-go/kimi-k2.7-code) — one source of truth for CLI and
+;; Emacs alike.
+(require 'acp nil t)
+(require 'agent-shell nil t)
+
+(map! :leader
+      :desc "OpenCode agent shell" "o c" #'agent-shell-opencode-start-agent)

@@ -56,3 +56,12 @@
 ;; pre-built "out" web assets or the server has nothing to serve.
 (package! org-roam-ui
   :recipe (:host github :repo "org-roam/org-roam-ui" :files ("*.el" "out")))
+
+;; agent-shell — drive ACP coding agents (opencode, Claude Code, Codex, …) from
+;; Emacs. opencode already speaks ACP via `opencode acp'. acp.el is the protocol
+;; layer, shell-maker the comint UI both build on.
+;; NOTE: this is NOT Doom's :tools llm module — that's gptel, which talks to LLM
+;; APIs directly and is not an ACP client.
+(package! shell-maker)
+(package! acp)
+(package! agent-shell)
